@@ -269,6 +269,15 @@ CREATE TABLE recurring_meetings (
   end_time TEXT NOT NULL
 );
 
+-- 祝日 + 会社休日（§15）。フェーズ4で追加。会社ごとに異なるため設定可能に保つ。
+CREATE TABLE holidays (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(id),
+  date TEXT NOT NULL,                 -- 'YYYY-MM-DD'（プロジェクトTZ）
+  name TEXT NOT NULL DEFAULT '',
+  UNIQUE(project_id, date)
+);
+
 -- 論点A: スケジュール計算結果のキャッシュ（source of truth はエンジン出力）
 CREATE TABLE task_schedule (
   task_id TEXT PRIMARY KEY REFERENCES tasks(id),
