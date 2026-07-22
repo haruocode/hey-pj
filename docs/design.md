@@ -314,8 +314,8 @@ interface SchedulingInput {
 
 interface ScheduledTask {
   taskId: string;
-  plannedStartAt: IsoDateTime;
-  plannedEndAt: IsoDateTime;
+  plannedStartDate: IsoDate; // 日単位（下記の実装注記を参照）
+  plannedEndDate: IsoDate;
   dailyAllocations: ReadonlyArray<{ date: IsoDate; minutes: Minutes }>;
 }
 
@@ -335,6 +335,13 @@ interface ScheduleResult {
 // エントリポイント
 function calculateSchedule(input: SchedulingInput): ScheduleResult;
 ```
+
+> **実装注記（フェーズ3）**: 計画開始/終了は当初 `IsoDateTime` を想定していたが、
+> 現モデルは「稼働開始時刻（clock anchor）」を持たず、キャパシティは分量のみで表現される。
+> そのため時刻粒度の計画日は定義できないと判断し、**日単位（`IsoDate`）** で出力する
+> （`plannedStartDate` / `plannedEndDate`）。時刻粒度への精緻化は、日内レイアウト（作業開始時刻・
+> 会議の時間帯配置）を導入する将来フェーズで行う。DB の `planned_start_at` / `planned_end_at`
+> 列は当面この日付を格納する。
 
 ### 4.2 内部コンポーネント
 
