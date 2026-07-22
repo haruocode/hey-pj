@@ -114,13 +114,16 @@ export default {
         .split('/')
         .map((s) => decodeURIComponent(s));
 
-      // POST /api/projects — プロジェクト作成（DO を介さないグローバル操作）
+      // GET /api/projects — 一覧 ／ POST /api/projects — 作成（DO を介さないグローバル操作）
       if (segs[0] === 'projects' && segs.length === 1) {
-        if (method !== 'POST') return methodNotAllowed();
         const repo = new D1ProjectRepository(env.DB);
-        const project = parseProject(await readBody(request));
-        await createProject(repo, project);
-        return json({ id: project.id });
+        if (method === 'GET') return json(await repo.listProjects());
+        if (method === 'POST') {
+          const project = parseProject(await readBody(request));
+          await createProject(repo, project);
+          return json({ id: project.id });
+        }
+        return methodNotAllowed();
       }
 
       if (segs[0] === 'projects' && segs.length >= 2) {

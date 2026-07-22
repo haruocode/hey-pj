@@ -38,6 +38,7 @@ export interface ProjectRepository {
   /** 計算結果（計画日・日次割当）をキャッシュとして永続化する（洗い替え）。 */
   saveScheduleResult(projectId: string, result: ScheduleResult): Promise<void>;
 
+  listProjects(): Promise<Project[]>;
   getProject(projectId: string): Promise<Project | null>;
   createProject(project: Project): Promise<void>;
   updateProject(projectId: string, patch: ProjectPatch): Promise<void>;

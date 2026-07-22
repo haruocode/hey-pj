@@ -17,6 +17,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  startDate: string;
+  timezone: string;
+  defaultWorkdayMinutes: number;
+}
+
+export function listProjects(): Promise<ProjectSummary[]> {
+  return request<ProjectSummary[]>(`/projects`);
+}
+
+export interface NewProjectInput {
+  name: string;
+  startDate: string;
+  timezone?: string;
+  defaultWorkdayMinutes?: number;
+}
+
+export function createProject(input: NewProjectInput): Promise<{ id: string }> {
+  return request<{ id: string }>(`/projects`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export function getProjectView(projectId: string): Promise<ProjectView> {
   return request<ProjectView>(`/projects/${encodeURIComponent(projectId)}`);
 }

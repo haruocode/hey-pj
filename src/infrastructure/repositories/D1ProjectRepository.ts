@@ -253,6 +253,22 @@ export class D1ProjectRepository implements ProjectRepository {
       .run();
   }
 
+  async listProjects(): Promise<Project[]> {
+    const { results } = await this.db
+      .prepare(
+        'SELECT id, name, description, start_date, timezone, default_workday_minutes FROM projects ORDER BY created_at',
+      )
+      .all<ProjectRow & { name: string; description: string }>();
+    return results.map((row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      startDate: isoDate(row.start_date),
+      timezone: row.timezone,
+      defaultWorkdayMinutes: minutes(row.default_workday_minutes),
+    }));
+  }
+
   async getProject(projectId: string): Promise<Project | null> {
     const row = await this.db
       .prepare(

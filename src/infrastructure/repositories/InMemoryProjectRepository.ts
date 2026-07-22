@@ -62,6 +62,10 @@ export class InMemoryProjectRepository implements ProjectRepository {
     return Promise.resolve();
   }
 
+  listProjects(): Promise<Project[]> {
+    return Promise.resolve([this.project]);
+  }
+
   getProject(projectId: string): Promise<Project | null> {
     return Promise.resolve(this.project.id === projectId ? this.project : null);
   }
