@@ -6,6 +6,14 @@ import type { TaskStatus } from '../../domain/task/Task';
 
 const STATUSES: TaskStatus[] = ['not_started', 'in_progress', 'done'];
 
+// 画面表示は時間(h)、内部は整数分。分↔時間の変換はここに集約する。
+function minutesToHours(min: number): number {
+  return Number((min / 60).toFixed(2)); // 末尾ゼロを落とす（480→8, 90→1.5）
+}
+function hoursToMinutes(hours: number): number {
+  return Math.round(hours * 60);
+}
+
 interface Props {
   projectId: string;
   view: ProjectView;
@@ -16,7 +24,7 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
-  const [newEstimate, setNewEstimate] = useState('480');
+  const [newEstimate, setNewEstimate] = useState('8'); // 時間(h)
   const [newAssignee, setNewAssignee] = useState(view.members[0]?.id ?? '');
 
   const titleOf = (taskId: string): string =>
@@ -40,9 +48,11 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
     if (v && v !== task.title) void run(() => api.updateTask(projectId, task.id, { title: v }));
   }
   function editEstimate(task: ProjectViewTask, value: string): void {
-    const n = Number(value);
-    if (Number.isFinite(n) && n >= 0 && n !== task.estimatedMinutes) {
-      void run(() => api.updateTask(projectId, task.id, { estimatedMinutes: n }));
+    const hours = Number(value);
+    if (!Number.isFinite(hours) || hours < 0) return;
+    const min = hoursToMinutes(hours);
+    if (min !== task.estimatedMinutes) {
+      void run(() => api.updateTask(projectId, task.id, { estimatedMinutes: min }));
     }
   }
   function editAssignee(task: ProjectViewTask, value: string): void {
@@ -64,12 +74,12 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
     void run(async () => {
       await api.createTask(projectId, {
         title,
-        estimatedMinutes: Number(newEstimate) || 0,
+        estimatedMinutes: hoursToMinutes(Number(newEstimate) || 0),
         assigneeId: newAssignee || null,
         sortOrder: view.tasks.length,
       });
       setNewTitle('');
-      setNewEstimate('480');
+      setNewEstimate('8');
     });
   }
 
@@ -96,7 +106,7 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
           <tr>
             <th className="col-num">#</th>
             <th className="col-title">タスク</th>
-            <th className="col-est">見積</th>
+            <th className="col-est">見積(h)</th>
             <th className="col-assignee">担当者</th>
             <th className="col-date">計画開始</th>
             <th className="col-date">計画終了</th>
@@ -121,13 +131,13 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
                   key={`est:${task.id}:${task.estimatedMinutes}`}
                   type="number"
                   min={0}
-                  step={60}
-                  defaultValue={task.estimatedMinutes}
+                  step={0.5}
+                  defaultValue={minutesToHours(task.estimatedMinutes)}
                   disabled={busy}
                   onBlur={(e) => editEstimate(task, e.target.value)}
                   title={formatMinutes(task.estimatedMinutes)}
                 />
-                <span className="unit">分</span>
+                <span className="unit">h</span>
               </td>
               <td className="col-assignee">
                 <select
@@ -194,12 +204,12 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
               <input
                 type="number"
                 min={0}
-                step={60}
+                step={0.5}
                 value={newEstimate}
                 disabled={busy}
                 onChange={(e) => setNewEstimate(e.target.value)}
               />
-              <span className="unit">分</span>
+              <span className="unit">h</span>
             </td>
             <td className="col-assignee">
               <select
