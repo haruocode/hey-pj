@@ -177,3 +177,104 @@ body {
   padding: 0.5rem 1rem;
   font-size: 0.95rem;
 }
+
+/* ビュー切替タブ */
+.app-shell {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 0;
+}
+.app-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+.app-tabs button {
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  font: inherit;
+  border-radius: 6px 6px 0 0;
+  color: var(--computed-fg);
+}
+.app-tabs button.active {
+  background: #fff;
+  border-color: var(--border);
+  color: #1f2328;
+  font-weight: 600;
+  margin-bottom: -1px;
+}
+.app-title {
+  font-size: 1.15rem;
+  margin: 0 0 0.5rem;
+}
+.app-title small {
+  font-weight: 400;
+  color: var(--computed-fg);
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+/* タブ表示時は各ビュー側の上パディングを詰める */
+.app-shell + .wbs,
+.app-shell .wbs,
+.app-shell .gantt {
+  padding-top: 0.5rem;
+}
+
+/* ガント */
+.gantt {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0.5rem 1.5rem 1.5rem;
+}
+.gantt-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.gantt-grid {
+  display: grid;
+  font-size: 0.8rem;
+}
+.gantt-corner,
+.gantt-dayhead,
+.gantt-label,
+.gantt-cell {
+  border-right: 1px solid #eaeef2;
+  border-bottom: 1px solid #eaeef2;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gantt-corner,
+.gantt-label {
+  justify-content: flex-start;
+  padding: 0 8px;
+  position: sticky;
+  left: 0;
+  background: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 1px solid var(--border);
+}
+.gantt-corner {
+  background: var(--head-bg);
+  font-weight: 600;
+}
+.gantt-dayhead {
+  background: var(--head-bg);
+  color: var(--computed-fg);
+  font-variant-numeric: tabular-nums;
+}
+.gantt-dayhead.weekend,
+.gantt-cell.weekend {
+  background: #f0f2f5;
+}
+.gantt-cell.work {
+  border-radius: 3px;
+}

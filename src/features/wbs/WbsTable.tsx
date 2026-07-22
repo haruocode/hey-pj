@@ -75,14 +75,11 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
 
   return (
     <div className="wbs">
-      <header className="wbs-head">
-        <h1>HeyPJ! — {view.project.name}</h1>
+      {busy && (
         <p className="wbs-sub">
-          開始 {view.project.startDate} ／ 完了予定{' '}
-          <strong>{view.projectEndDate ?? '—'}</strong>
-          {busy && <span className="wbs-busy"> 再計算中…</span>}
+          <span className="wbs-busy">再計算中…</span>
         </p>
-      </header>
+      )}
 
       {error && <div className="wbs-error">エラー: {error}</div>}
 

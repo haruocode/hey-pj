@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { WbsTable } from '../features/wbs/WbsTable';
+import { GanttChart } from '../features/gantt/GanttChart';
 import type { ProjectView } from '../features/wbs/api';
 import * as api from '../features/wbs/api';
 
 const PROJECT_ID = 'p1';
+type ViewMode = 'wbs' | 'gantt';
 
 export function App() {
   const [view, setView] = useState<ProjectView | null>(null);
+  const [mode, setMode] = useState<ViewMode>('wbs');
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +39,31 @@ export function App() {
   }
 
   if (view) {
-    return <WbsTable projectId={PROJECT_ID} view={view} onChanged={load} />;
+    return (
+      <>
+        <div className="app-shell">
+          <h1 className="app-title">
+            HeyPJ! — {view.project.name}
+            <small>
+              開始 {view.project.startDate} ／ 完了予定 {view.projectEndDate ?? '—'}
+            </small>
+          </h1>
+          <nav className="app-tabs">
+            <button className={mode === 'wbs' ? 'active' : ''} onClick={() => setMode('wbs')}>
+              WBS
+            </button>
+            <button className={mode === 'gantt' ? 'active' : ''} onClick={() => setMode('gantt')}>
+              ガント
+            </button>
+          </nav>
+        </div>
+        {mode === 'wbs' ? (
+          <WbsTable projectId={PROJECT_ID} view={view} onChanged={load} />
+        ) : (
+          <GanttChart view={view} />
+        )}
+      </>
+    );
   }
 
   return (
