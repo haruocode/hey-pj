@@ -224,6 +224,97 @@ body {
   padding-top: 0.5rem;
 }
 
+/* 設定 */
+.settings {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0.5rem 1.5rem 1.5rem;
+}
+.settings-section {
+  margin-bottom: 1.5rem;
+}
+.settings-section h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem 1.25rem;
+  max-width: 640px;
+}
+.settings-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--computed-fg);
+}
+.settings-grid input,
+.settings-grid select {
+  font: inherit;
+  color: #1f2328;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+.settings-grid input:focus,
+.settings-grid select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.settings-members {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.settings-members th,
+.settings-members td {
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  text-align: left;
+}
+.settings-members th {
+  background: var(--head-bg);
+  font-weight: 600;
+}
+.settings-members input {
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  padding: 3px 4px;
+  border-radius: 4px;
+  width: 8rem;
+}
+.settings-members input[type='number'] {
+  width: 4rem;
+}
+.settings-members input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+}
+.settings-members .unit {
+  color: var(--computed-fg);
+  font-size: 0.8rem;
+  margin-left: 2px;
+}
+.settings-add button {
+  margin-left: 8px;
+  border: 1px solid var(--accent);
+  color: #fff;
+  background: var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 3px 10px;
+}
+.settings-add button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* ガント */
 .gantt {
   max-width: 1000px;

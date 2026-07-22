@@ -70,6 +70,46 @@ export function reorderTasks(projectId: string, orderedTaskIds: string[]): Promi
   });
 }
 
+export interface ProjectPatchInput {
+  name?: string;
+  startDate?: string;
+  timezone?: string;
+  defaultWorkdayMinutes?: number;
+}
+
+export function updateProject(projectId: string, patch: ProjectPatchInput): Promise<unknown> {
+  return request(`/projects/${encodeURIComponent(projectId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
+export interface MemberPatchInput {
+  name?: string;
+  dailyCapacityMinutes?: number;
+}
+
+export function updateMember(
+  projectId: string,
+  memberId: string,
+  patch: MemberPatchInput,
+): Promise<unknown> {
+  return request(
+    `/projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(memberId)}`,
+    { method: 'PATCH', body: JSON.stringify(patch) },
+  );
+}
+
+export function addMember(
+  projectId: string,
+  member: { name: string; dailyCapacityMinutes: number },
+): Promise<unknown> {
+  return request(`/projects/${encodeURIComponent(projectId)}/members`, {
+    method: 'POST',
+    body: JSON.stringify(member),
+  });
+}
+
 // デモ用のブートストラップ（プロジェクト + メンバー作成）。
 export async function createDemoProject(projectId: string): Promise<void> {
   await request(`/projects`, {

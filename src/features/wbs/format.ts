@@ -1,5 +1,13 @@
 import type { Conflict } from '../../domain/scheduling/types';
 
+// 画面表示は時間(h)、内部は整数分。分↔時間の変換はここに集約する。
+export function minutesToHours(min: number): number {
+  return Number((min / 60).toFixed(2)); // 末尾ゼロを落とす（480→8, 90→1.5）
+}
+export function hoursToMinutes(hours: number): number {
+  return Math.round(hours * 60);
+}
+
 // 分を人間向けに表示（480分=1人日）。UI 表示専用。内部計算は常に整数分。
 export function formatMinutes(min: number): string {
   if (min === 0) return '—';

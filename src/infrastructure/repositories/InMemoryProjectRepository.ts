@@ -1,4 +1,4 @@
-import type { ProjectRepository, TaskPatch } from '../../application/ports';
+import type { ProjectRepository, TaskPatch, ProjectPatch, MemberPatch } from '../../application/ports';
 import { defaultHorizon } from '../../application/ports';
 import type { Project } from '../../domain/project/Project';
 import type { Task } from '../../domain/task/Task';
@@ -71,8 +71,18 @@ export class InMemoryProjectRepository implements ProjectRepository {
     return Promise.resolve();
   }
 
+  updateProject(projectId: string, patch: ProjectPatch): Promise<void> {
+    if (this.project.id === projectId) this.project = { ...this.project, ...patch };
+    return Promise.resolve();
+  }
+
   addMember(member: Member): Promise<void> {
     this.members = [...this.members.filter((m) => m.id !== member.id), member];
+    return Promise.resolve();
+  }
+
+  updateMember(memberId: string, patch: MemberPatch): Promise<void> {
+    this.members = this.members.map((m) => (m.id === memberId ? { ...m, ...patch } : m));
     return Promise.resolve();
   }
 

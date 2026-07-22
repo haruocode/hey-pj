@@ -2,7 +2,7 @@ import type { Env } from './env';
 import { ProjectScheduler } from './ProjectScheduler';
 import { D1ProjectRepository } from '../infrastructure/repositories/D1ProjectRepository';
 import { createProject, addMember } from '../application/create-project/createProject';
-import type { TaskPatch } from '../application/ports';
+import type { TaskPatch, ProjectPatch, MemberPatch } from '../application/ports';
 import { minutes, isoDate } from '../domain/shared/units';
 import type { Task, TaskStatus } from '../domain/task/Task';
 import type { Project } from '../domain/project/Project';
@@ -50,6 +50,24 @@ function parseTaskPatch(body: Record<string, unknown>): TaskPatch {
     patch.estimatedMinutes = minutes(body.estimatedMinutes);
   if ('phaseId' in body) patch.phaseId = strOrNull(body.phaseId);
   if (typeof body.status === 'string') patch.status = body.status as TaskStatus;
+  return patch;
+}
+
+function parseProjectPatch(body: Record<string, unknown>): ProjectPatch {
+  const patch: ProjectPatch = {};
+  if (typeof body.name === 'string') patch.name = body.name;
+  if (typeof body.startDate === 'string') patch.startDate = isoDate(body.startDate);
+  if (typeof body.timezone === 'string') patch.timezone = body.timezone;
+  if (typeof body.defaultWorkdayMinutes === 'number')
+    patch.defaultWorkdayMinutes = minutes(body.defaultWorkdayMinutes);
+  return patch;
+}
+
+function parseMemberPatch(body: Record<string, unknown>): MemberPatch {
+  const patch: MemberPatch = {};
+  if (typeof body.name === 'string') patch.name = body.name;
+  if (typeof body.dailyCapacityMinutes === 'number')
+    patch.dailyCapacityMinutes = minutes(body.dailyCapacityMinutes);
   return patch;
 }
 
@@ -110,9 +128,14 @@ export default {
         const stub = schedulerStub(env, projectId);
 
         // GET /api/projects/:id — WBS 読み取りモデル
+        // PATCH /api/projects/:id — プロジェクト設定更新（名前・開始日・TZ 等）
         if (segs.length === 2) {
-          if (method !== 'GET') return methodNotAllowed();
-          return json(await stub.getProjectView(projectId));
+          if (method === 'GET') return json(await stub.getProjectView(projectId));
+          if (method === 'PATCH') {
+            const patch = parseProjectPatch(await readBody(request));
+            return json(await stub.updateProject({ projectId, patch }));
+          }
+          return methodNotAllowed();
         }
 
         const action = segs[2]!;
@@ -123,6 +146,14 @@ export default {
           const taskId = segs[3]!;
           const patch = parseTaskPatch(await readBody(request));
           return json(await stub.updateTask({ projectId, taskId, patch }));
+        }
+
+        // PATCH /api/projects/:id/members/:memberId — メンバー設定更新（稼働時間 等）
+        if (segs.length === 4 && action === 'members') {
+          if (method !== 'PATCH') return methodNotAllowed();
+          const memberId = segs[3]!;
+          const patch = parseMemberPatch(await readBody(request));
+          return json(await stub.updateMember({ projectId, memberId, patch }));
         }
 
         if (segs.length !== 3) return new Response('Not Found', { status: 404 });

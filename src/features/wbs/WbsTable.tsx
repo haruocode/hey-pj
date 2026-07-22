@@ -1,18 +1,10 @@
 import { useState } from 'react';
 import type { ProjectView, ProjectViewTask } from './api';
 import * as api from './api';
-import { formatMinutes, statusLabel, conflictMessage } from './format';
+import { formatMinutes, statusLabel, conflictMessage, minutesToHours, hoursToMinutes } from './format';
 import type { TaskStatus } from '../../domain/task/Task';
 
 const STATUSES: TaskStatus[] = ['not_started', 'in_progress', 'done'];
-
-// 画面表示は時間(h)、内部は整数分。分↔時間の変換はここに集約する。
-function minutesToHours(min: number): number {
-  return Number((min / 60).toFixed(2)); // 末尾ゼロを落とす（480→8, 90→1.5）
-}
-function hoursToMinutes(hours: number): number {
-  return Math.round(hours * 60);
-}
 
 interface Props {
   projectId: string;

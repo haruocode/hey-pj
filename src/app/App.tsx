@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { WbsTable } from '../features/wbs/WbsTable';
 import { GanttChart } from '../features/gantt/GanttChart';
+import { ProjectSettings } from '../features/settings/ProjectSettings';
 import type { ProjectView } from '../features/wbs/api';
 import * as api from '../features/wbs/api';
 
 const PROJECT_ID = 'p1';
-type ViewMode = 'wbs' | 'gantt';
+type ViewMode = 'wbs' | 'gantt' | 'settings';
 
 export function App() {
   const [view, setView] = useState<ProjectView | null>(null);
@@ -55,12 +56,18 @@ export function App() {
             <button className={mode === 'gantt' ? 'active' : ''} onClick={() => setMode('gantt')}>
               ガント
             </button>
+            <button
+              className={mode === 'settings' ? 'active' : ''}
+              onClick={() => setMode('settings')}
+            >
+              設定
+            </button>
           </nav>
         </div>
-        {mode === 'wbs' ? (
-          <WbsTable projectId={PROJECT_ID} view={view} onChanged={load} />
-        ) : (
-          <GanttChart view={view} />
+        {mode === 'wbs' && <WbsTable projectId={PROJECT_ID} view={view} onChanged={load} />}
+        {mode === 'gantt' && <GanttChart view={view} />}
+        {mode === 'settings' && (
+          <ProjectSettings projectId={PROJECT_ID} view={view} onChanged={load} />
         )}
       </>
     );

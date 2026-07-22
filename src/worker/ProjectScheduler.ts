@@ -8,6 +8,10 @@ import { reorderTask } from '../application/reorder-task/reorderTask';
 import type { ReorderTaskCommand } from '../application/reorder-task/reorderTask';
 import { updateTask } from '../application/update-task/updateTask';
 import type { UpdateTaskCommand } from '../application/update-task/updateTask';
+import { updateProjectSettings } from '../application/update-project/updateProjectSettings';
+import type { UpdateProjectCommand } from '../application/update-project/updateProjectSettings';
+import { updateMemberSettings } from '../application/update-member/updateMemberSettings';
+import type { UpdateMemberCommand } from '../application/update-member/updateMemberSettings';
 import { recalculateSchedule } from '../application/recalculate-schedule/recalculateSchedule';
 import { getSchedule } from '../application/get-schedule/getSchedule';
 import { getProjectView } from '../application/get-project-view/getProjectView';
@@ -51,6 +55,14 @@ export class ProjectScheduler extends DurableObject<Env> {
 
   updateTask(cmd: UpdateTaskCommand): Promise<ScheduleResult> {
     return this.serialize(() => updateTask(this.repo, cmd));
+  }
+
+  updateProject(cmd: UpdateProjectCommand): Promise<ScheduleResult> {
+    return this.serialize(() => updateProjectSettings(this.repo, cmd));
+  }
+
+  updateMember(cmd: UpdateMemberCommand): Promise<ScheduleResult> {
+    return this.serialize(() => updateMemberSettings(this.repo, cmd));
   }
 
   getProjectView(projectId: string): Promise<ProjectView> {

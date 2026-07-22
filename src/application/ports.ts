@@ -15,6 +15,20 @@ export interface TaskPatch {
   status?: TaskStatus;
 }
 
+// プロジェクト設定の部分更新。startDate はスケジューリングの主要入力なので変更時は再計算する。
+export interface ProjectPatch {
+  name?: string;
+  startDate?: IsoDate;
+  timezone?: string;
+  defaultWorkdayMinutes?: Minutes;
+}
+
+// メンバー設定の部分更新。dailyCapacityMinutes は実効可用分の基礎なので変更時は再計算する。
+export interface MemberPatch {
+  name?: string;
+  dailyCapacityMinutes?: Minutes;
+}
+
 // アプリケーション層が依存するリポジトリのポート（インターフェース）。
 // D1 実装（infrastructure）と in-memory 実装（テスト用）を差し替え可能にする。
 // これにより、スケジューリングのオーケストレーションは Cloudflare 非依存でテストできる。
@@ -26,7 +40,9 @@ export interface ProjectRepository {
 
   getProject(projectId: string): Promise<Project | null>;
   createProject(project: Project): Promise<void>;
+  updateProject(projectId: string, patch: ProjectPatch): Promise<void>;
   addMember(member: Member): Promise<void>;
+  updateMember(memberId: string, patch: MemberPatch): Promise<void>;
 
   insertTask(task: Task): Promise<void>;
   updateTask(taskId: string, patch: TaskPatch): Promise<void>;

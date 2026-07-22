@@ -1,4 +1,4 @@
-import type { ProjectRepository, TaskPatch } from '../../application/ports';
+import type { ProjectRepository, TaskPatch, ProjectPatch, MemberPatch } from '../../application/ports';
 import { defaultHorizon } from '../../application/ports';
 import type { Project } from '../../domain/project/Project';
 import type { Task, TaskStatus } from '../../domain/task/Task';
@@ -292,12 +292,60 @@ export class D1ProjectRepository implements ProjectRepository {
       .run();
   }
 
+  async updateProject(projectId: string, patch: ProjectPatch): Promise<void> {
+    const sets: string[] = [];
+    const values: (string | number)[] = [];
+    if (patch.name !== undefined) {
+      sets.push('name = ?');
+      values.push(patch.name);
+    }
+    if (patch.startDate !== undefined) {
+      sets.push('start_date = ?');
+      values.push(patch.startDate);
+    }
+    if (patch.timezone !== undefined) {
+      sets.push('timezone = ?');
+      values.push(patch.timezone);
+    }
+    if (patch.defaultWorkdayMinutes !== undefined) {
+      sets.push('default_workday_minutes = ?');
+      values.push(patch.defaultWorkdayMinutes);
+    }
+    if (sets.length === 0) return;
+    sets.push('updated_at = ?');
+    values.push(new Date().toISOString());
+    values.push(projectId);
+    await this.db
+      .prepare(`UPDATE projects SET ${sets.join(', ')} WHERE id = ?`)
+      .bind(...values)
+      .run();
+  }
+
   async addMember(member: Member): Promise<void> {
     await this.db
       .prepare(
         'INSERT INTO members (id, workspace_id, name, daily_capacity_minutes) VALUES (?, ?, ?, ?)',
       )
       .bind(member.id, member.workspaceId, member.name, member.dailyCapacityMinutes)
+      .run();
+  }
+
+  async updateMember(memberId: string, patch: MemberPatch): Promise<void> {
+    const sets: string[] = [];
+    const values: (string | number)[] = [];
+    if (patch.name !== undefined) {
+      sets.push('name = ?');
+      values.push(patch.name);
+    }
+    if (patch.dailyCapacityMinutes !== undefined) {
+      sets.push('daily_capacity_minutes = ?');
+      values.push(patch.dailyCapacityMinutes);
+    }
+    if (sets.length === 0) return;
+    values.push(memberId);
+    await this.db
+      .prepare(`UPDATE members SET ${sets.join(', ')} WHERE id = ?`)
+      .bind(...values)
       .run();
   }
 
