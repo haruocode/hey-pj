@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hey-pj",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-07-23",
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  }
+  // D1 / Durable Objects / KV / R2 のバインディングはフェーズ4以降で追加する（docs/design.md §8）。
+}
