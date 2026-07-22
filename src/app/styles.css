@@ -101,8 +101,13 @@ body {
   cursor: grab;
   color: #afb8c1;
   user-select: none;
-  margin-right: 3px;
+  margin-right: 4px;
   letter-spacing: -2px;
+  touch-action: none; /* タッチでのスクロールを止めてドラッグに専念 */
+  padding: 0 2px;
+}
+.drag-handle:hover {
+  color: var(--accent);
 }
 .drag-handle:active {
   cursor: grabbing;
@@ -110,11 +115,12 @@ body {
 .row-num {
   font-variant-numeric: tabular-nums;
 }
-.wbs-table tbody tr.dragging {
-  opacity: 0.4;
+/* ドラッグ中の行はプレビュー位置でハイライト表示 */
+.wbs-table tbody tr.dragging > td {
+  background: #eaf2fd;
 }
-.wbs-table tbody tr.drag-over > td {
-  border-top: 2px solid var(--accent);
+.wbs-table tbody tr.dragging > td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 .col-est {
   width: 6rem;
@@ -135,22 +141,6 @@ body {
 }
 .col-status {
   width: 6rem;
-}
-.col-move {
-  width: 3.5rem;
-  white-space: nowrap;
-  text-align: center;
-}
-.col-move button {
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 1px 5px;
-}
-.col-move button:disabled {
-  opacity: 0.4;
-  cursor: default;
 }
 
 /* 計画日は計算値であることを視覚的に示す */

@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from 'react';
+import { useRef, useState, type PointerEvent } from 'react';
 import type { ProjectView, ProjectViewTask } from './api';
 import * as api from './api';
 import { formatMinutes, statusLabel, conflictMessage, minutesToHours, hoursToMinutes } from './format';
@@ -18,8 +18,9 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
   const [newTitle, setNewTitle] = useState('');
   const [newEstimate, setNewEstimate] = useState('8'); // 時間(h)
   const [newAssignee, setNewAssignee] = useState(view.members[0]?.id ?? '');
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [order, setOrder] = useState<string[] | null>(null);
+  const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
 
   const titleOf = (taskId: string): string =>
     view.tasks.find((t) => t.id === taskId)?.title ?? taskId;
@@ -55,46 +56,71 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
   function editStatus(task: ProjectViewTask, value: string): void {
     void run(() => api.updateTask(projectId, task.id, { status: value as TaskStatus }));
   }
-  function move(index: number, delta: number): void {
-    const ids = view.tasks.map((t) => t.id);
-    const to = index + delta;
-    if (to < 0 || to >= ids.length) return;
-    [ids[index], ids[to]] = [ids[to]!, ids[index]!];
-    void run(() => api.reorderTasks(projectId, ids));
+  // ポインタベースのドラッグ&ドロップ並び替え。ドラッグ中は行を実際に並べ替えて
+  // プレビュー表示し（着地点が見える）、離した位置で確定→再計算する。
+  // ハンドルからのみ開始するので、セルの編集操作とは干渉しない。
+  const displayTasks: ProjectViewTask[] =
+    order === null
+      ? view.tasks
+      : order
+          .map((id) => view.tasks.find((t) => t.id === id))
+          .filter((t): t is ProjectViewTask => t !== undefined);
+
+  function previewOrder(draggedId: string, pointerY: number): string[] {
+    const current = order ?? view.tasks.map((t) => t.id);
+    const others = current.filter((id) => id !== draggedId);
+    let insertAt = others.length;
+    for (let i = 0; i < others.length; i++) {
+      const el = rowRefs.current.get(others[i]!);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      if (pointerY < rect.top + rect.height / 2) {
+        insertAt = i;
+        break;
+      }
+    }
+    const next = [...others];
+    next.splice(insertAt, 0, draggedId);
+    return next;
   }
 
-  // ドラッグ&ドロップ並び替え（HTML5 ネイティブ）。ハンドルから開始し、行が drop 先。
-  function startDrag(index: number, e: DragEvent<HTMLElement>): void {
-    setDragIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', String(index)); // Firefox は setData がないと開始しない
-  }
-  function endDrag(): void {
-    setDragIndex(null);
-    setOverIndex(null);
-  }
-  function onRowDragOver(index: number, e: DragEvent<HTMLTableRowElement>): void {
-    if (dragIndex === null) return;
-    e.preventDefault(); // drop を許可
-    e.dataTransfer.dropEffect = 'move';
-    if (overIndex !== index) setOverIndex(index);
-  }
-  function onRowDrop(index: number, e: DragEvent<HTMLTableRowElement>): void {
+  function handleDragStart(taskId: string, e: PointerEvent<HTMLElement>): void {
+    if (busy) return;
     e.preventDefault();
-    const from = dragIndex;
-    setDragIndex(null);
-    setOverIndex(null);
-    if (from === null || from === index) return;
-    const ids = view.tasks.map((t) => t.id);
-    const draggedId = ids[from]!;
-    const targetId = ids[index]!;
-    // 行の上半分に落とせば手前、下半分なら後ろに挿入（末尾への移動も可能）。
-    const rect = e.currentTarget.getBoundingClientRect();
-    const after = e.clientY - rect.top > rect.height / 2;
-    const without = ids.filter((_, i) => i !== from);
-    const pos = without.indexOf(targetId) + (after ? 1 : 0);
-    without.splice(pos, 0, draggedId);
-    void run(() => api.reorderTasks(projectId, without));
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDragId(taskId);
+    setOrder(view.tasks.map((t) => t.id));
+  }
+  function handleDragMove(e: PointerEvent<HTMLElement>): void {
+    if (dragId === null) return;
+    setOrder(previewOrder(dragId, e.clientY));
+  }
+  function handleDragEnd(e: PointerEvent<HTMLElement>): void {
+    if (dragId === null) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    const finalOrder = order;
+    setDragId(null);
+    const baseline = view.tasks.map((t) => t.id).join();
+    if (finalOrder && finalOrder.join() !== baseline) {
+      void commitOrder(finalOrder);
+    } else {
+      setOrder(null);
+    }
+  }
+  async function commitOrder(ids: string[]): Promise<void> {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.reorderTasks(projectId, ids);
+      await onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+      setOrder(null); // 並び替え後の view に切り替える（順序は一致するので跳ねない）
+    }
   }
   function addTask(): void {
     const title = newTitle.trim();
@@ -139,25 +165,25 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
             <th className="col-date">計画開始</th>
             <th className="col-date">計画終了</th>
             <th className="col-status">ステータス</th>
-            <th className="col-move"></th>
           </tr>
         </thead>
         <tbody>
-          {view.tasks.map((task, i) => (
+          {displayTasks.map((task, i) => (
             <tr
               key={task.id}
-              onDragOver={busy ? undefined : (e) => onRowDragOver(i, e)}
-              onDrop={busy ? undefined : (e) => onRowDrop(i, e)}
-              className={
-                dragIndex === i ? 'dragging' : overIndex === i && dragIndex !== null ? 'drag-over' : ''
-              }
+              ref={(el) => {
+                if (el) rowRefs.current.set(task.id, el);
+                else rowRefs.current.delete(task.id);
+              }}
+              className={dragId === task.id ? 'dragging' : ''}
             >
               <td className="col-num">
                 <span
                   className="drag-handle"
-                  draggable={!busy}
-                  onDragStart={(e) => startDrag(i, e)}
-                  onDragEnd={endDrag}
+                  onPointerDown={(e) => handleDragStart(task.id, e)}
+                  onPointerMove={handleDragMove}
+                  onPointerUp={handleDragEnd}
+                  onPointerCancel={handleDragEnd}
                   title="ドラッグで並び替え"
                   aria-label="ドラッグで並び替え"
                 >
@@ -220,18 +246,6 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
                   ))}
                 </select>
               </td>
-              <td className="col-move">
-                <button disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label="上へ">
-                  ↑
-                </button>
-                <button
-                  disabled={busy || i === view.tasks.length - 1}
-                  onClick={() => move(i, 1)}
-                  aria-label="下へ"
-                >
-                  ↓
-                </button>
-              </td>
             </tr>
           ))}
         </tbody>
@@ -274,8 +288,7 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
             </td>
             <td className="col-date" />
             <td className="col-date" />
-            <td className="col-status" />
-            <td className="col-move">
+            <td className="col-status">
               <button disabled={busy || !newTitle.trim()} onClick={addTask}>
                 追加
               </button>
