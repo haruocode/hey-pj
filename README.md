@@ -117,6 +117,35 @@ src/
 
 ---
 
+## 開発
+
+```bash
+pnpm install
+pnpm test         # ドメイン/アプリ層のユニットテスト（node 環境）
+pnpm typecheck
+pnpm build        # クライアント SPA + Workers バンドル
+
+# ローカル D1（初回・スキーマ変更時）
+pnpm build
+npx wrangler d1 migrations apply DB --local
+
+# ローカル起動（Workers + D1 + Durable Object をローカル実行）
+npx wrangler dev
+```
+
+API（プロジェクト単位で Durable Object が調整）:
+
+| メソッド | パス | 用途 |
+| --- | --- | --- |
+| `GET` | `/api/projects/:id/schedule` | 現在のスケジュールを取得 |
+| `POST` | `/api/projects/:id/tasks` | タスク作成 → 再計算 |
+| `POST` | `/api/projects/:id/assign` | 担当者変更 → 再計算 |
+| `POST` | `/api/projects/:id/reorder` | 並び替え → 再計算 |
+| `POST` | `/api/projects/:id/recalculate` | 明示的に再計算 |
+
+> `wrangler` の対応範囲に合わせ、`compatibility_date` は現状 `2024-11-01`。デプロイ時は
+> `wrangler d1 create hey-pj` で得た ID を `wrangler.jsonc` の `database_id` に設定します。
+
 ## ドキュメント
 
-プロダクトビジョン、ドメインモデル、スケジューリング仕様、開発ガイドラインの詳細は [AGENTS.md](AGENTS.md) を参照してください。
+プロダクトビジョン、ドメインモデル、スケジューリング仕様、開発ガイドラインの詳細は [AGENTS.md](AGENTS.md) を、設計は [docs/design.md](docs/design.md) を参照してください。

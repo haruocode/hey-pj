@@ -2,13 +2,26 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hey-pj",
   "main": "src/worker/index.ts",
-  "compatibility_date": "2026-07-23",
+  "compatibility_date": "2024-11-01",
   "assets": {
     "directory": "./dist/client",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hey-pj",
+      // ローカル開発では任意の値で可。デプロイ時は `wrangler d1 create hey-pj` で得た ID に差し替える。
+      "database_id": "local-hey-pj",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "PROJECT_SCHEDULER", "class_name": "ProjectScheduler" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ProjectScheduler"] }],
   "observability": {
     "enabled": true
   }
-  // D1 / Durable Objects / KV / R2 のバインディングはフェーズ4以降で追加する（docs/design.md §8）。
 }
