@@ -1,5 +1,6 @@
-import type { ProjectRepository } from '../../application/ports';
+import type { ProjectRepository, TaskPatch } from '../../application/ports';
 import { defaultHorizon } from '../../application/ports';
+import type { Project } from '../../domain/project/Project';
 import type { Task, TaskStatus } from '../../domain/task/Task';
 import type { TaskDependency, DependencyType } from '../../domain/task/Dependency';
 import type { Member } from '../../domain/member/Member';
@@ -249,6 +250,87 @@ export class D1ProjectRepository implements ProjectRepository {
         now,
         now,
       )
+      .run();
+  }
+
+  async getProject(projectId: string): Promise<Project | null> {
+    const row = await this.db
+      .prepare(
+        'SELECT id, name, description, start_date, timezone, default_workday_minutes FROM projects WHERE id = ?',
+      )
+      .bind(projectId)
+      .first<ProjectRow & { name: string; description: string }>();
+    if (!row) return null;
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      startDate: isoDate(row.start_date),
+      timezone: row.timezone,
+      defaultWorkdayMinutes: minutes(row.default_workday_minutes),
+    };
+  }
+
+  async createProject(project: Project): Promise<void> {
+    const now = new Date().toISOString();
+    await this.db
+      .prepare(
+        `INSERT INTO projects
+          (id, name, description, start_date, timezone, default_workday_minutes, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        project.id,
+        project.name,
+        project.description,
+        project.startDate,
+        project.timezone,
+        project.defaultWorkdayMinutes,
+        now,
+        now,
+      )
+      .run();
+  }
+
+  async addMember(member: Member): Promise<void> {
+    await this.db
+      .prepare(
+        'INSERT INTO members (id, workspace_id, name, daily_capacity_minutes) VALUES (?, ?, ?, ?)',
+      )
+      .bind(member.id, member.workspaceId, member.name, member.dailyCapacityMinutes)
+      .run();
+  }
+
+  async updateTask(taskId: string, patch: TaskPatch): Promise<void> {
+    const sets: string[] = [];
+    const values: (string | number | null)[] = [];
+    if (patch.title !== undefined) {
+      sets.push('title = ?');
+      values.push(patch.title);
+    }
+    if (patch.description !== undefined) {
+      sets.push('description = ?');
+      values.push(patch.description);
+    }
+    if (patch.estimatedMinutes !== undefined) {
+      sets.push('estimated_minutes = ?');
+      values.push(patch.estimatedMinutes);
+    }
+    if (patch.phaseId !== undefined) {
+      sets.push('phase_id = ?');
+      values.push(patch.phaseId);
+    }
+    if (patch.status !== undefined) {
+      sets.push('status = ?');
+      values.push(patch.status);
+    }
+    if (sets.length === 0) return;
+    sets.push('updated_at = ?');
+    values.push(new Date().toISOString());
+    values.push(taskId);
+    await this.db
+      .prepare(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`)
+      .bind(...values)
       .run();
   }
 

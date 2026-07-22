@@ -1,0 +1,179 @@
+:root {
+  --border: #d0d7de;
+  --head-bg: #f6f8fa;
+  --computed-bg: #f3f6fb;
+  --computed-fg: #57606a;
+  --accent: #0969da;
+  --warn-bg: #fff8c5;
+  --warn-fg: #7d4e00;
+  --error-bg: #ffebe9;
+  --error-fg: #cf222e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+  color: #1f2328;
+  background: #fff;
+}
+
+.wbs,
+.wbs-bootstrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.wbs-head h1 {
+  font-size: 1.25rem;
+  margin: 0 0 0.25rem;
+}
+.wbs-sub {
+  margin: 0 0 1rem;
+  color: var(--computed-fg);
+  font-size: 0.9rem;
+}
+.wbs-busy {
+  color: var(--accent);
+}
+
+.wbs-error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.wbs-conflicts {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  border-radius: 6px;
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem 0.5rem 1.75rem;
+  font-size: 0.9rem;
+}
+
+.wbs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.wbs-table th,
+.wbs-table td {
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  text-align: left;
+}
+.wbs-table thead th {
+  background: var(--head-bg);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.wbs-table input,
+.wbs-table select {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 3px 4px;
+  font: inherit;
+  border-radius: 4px;
+}
+.wbs-table input:focus,
+.wbs-table select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+}
+
+.col-num {
+  width: 2.5rem;
+  text-align: center;
+  color: var(--computed-fg);
+}
+.col-est {
+  width: 6rem;
+  white-space: nowrap;
+}
+.col-est input {
+  width: 4rem;
+}
+.col-est .unit {
+  color: var(--computed-fg);
+  font-size: 0.8rem;
+}
+.col-assignee {
+  width: 7rem;
+}
+.col-date {
+  width: 6.5rem;
+}
+.col-status {
+  width: 6rem;
+}
+.col-move {
+  width: 3.5rem;
+  white-space: nowrap;
+  text-align: center;
+}
+.col-move button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 1px 5px;
+}
+.col-move button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 計画日は計算値であることを視覚的に示す */
+.computed {
+  background: var(--computed-bg);
+  color: var(--computed-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.wbs-add td {
+  background: #fbfcfd;
+}
+.wbs-add button {
+  border: 1px solid var(--accent);
+  color: #fff;
+  background: var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 3px 10px;
+}
+.wbs-add button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.wbs-note {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--computed-fg);
+}
+.computed-legend {
+  background: var(--computed-bg);
+  color: var(--computed-fg);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.wbs-bootstrap button {
+  border: 1px solid var(--accent);
+  color: #fff;
+  background: var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+}

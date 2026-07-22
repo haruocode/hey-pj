@@ -1,4 +1,4 @@
-import type { ProjectRepository } from '../../application/ports';
+import type { ProjectRepository, TaskPatch } from '../../application/ports';
 import { defaultHorizon } from '../../application/ports';
 import type { Project } from '../../domain/project/Project';
 import type { Task } from '../../domain/task/Task';
@@ -21,7 +21,7 @@ export interface ProjectSeed {
 
 // テスト・ローカル開発用のインメモリ実装。D1 実装と同じポートを満たす。
 export class InMemoryProjectRepository implements ProjectRepository {
-  private readonly project: Project;
+  private project: Project;
   private tasks: Task[];
   private dependencies: TaskDependency[];
   private members: Member[];
@@ -62,8 +62,27 @@ export class InMemoryProjectRepository implements ProjectRepository {
     return Promise.resolve();
   }
 
+  getProject(projectId: string): Promise<Project | null> {
+    return Promise.resolve(this.project.id === projectId ? this.project : null);
+  }
+
+  createProject(project: Project): Promise<void> {
+    this.project = project;
+    return Promise.resolve();
+  }
+
+  addMember(member: Member): Promise<void> {
+    this.members = [...this.members.filter((m) => m.id !== member.id), member];
+    return Promise.resolve();
+  }
+
   insertTask(task: Task): Promise<void> {
     this.tasks.push(task);
+    return Promise.resolve();
+  }
+
+  updateTask(taskId: string, patch: TaskPatch): Promise<void> {
+    this.tasks = this.tasks.map((t) => (t.id === taskId ? { ...t, ...patch } : t));
     return Promise.resolve();
   }
 

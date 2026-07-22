@@ -1,7 +1,12 @@
 import type { Env } from './env';
 import { ProjectScheduler } from './ProjectScheduler';
-import { minutes } from '../domain/shared/units';
+import { D1ProjectRepository } from '../infrastructure/repositories/D1ProjectRepository';
+import { createProject, addMember } from '../application/create-project/createProject';
+import type { TaskPatch } from '../application/ports';
+import { minutes, isoDate } from '../domain/shared/units';
 import type { Task, TaskStatus } from '../domain/task/Task';
+import type { Project } from '../domain/project/Project';
+import type { Member } from '../domain/member/Member';
 
 // Durable Object クラスはランタイムが解決できるよう worker モジュールから re-export する。
 export { ProjectScheduler };
@@ -23,7 +28,7 @@ function strOrNull(v: unknown): string | null {
 
 function parseTask(body: Record<string, unknown>, projectId: string): Task {
   return {
-    id: str(body.id),
+    id: str(body.id) || crypto.randomUUID(),
     projectId,
     phaseId: strOrNull(body.phaseId),
     parentTaskId: strOrNull(body.parentTaskId),
@@ -33,41 +38,114 @@ function parseTask(body: Record<string, unknown>, projectId: string): Task {
     actualMinutes: minutes(num(body.actualMinutes)),
     assigneeId: strOrNull(body.assigneeId),
     sortOrder: num(body.sortOrder),
-    status: (str(body.status, 'not_started') as TaskStatus) satisfies TaskStatus,
+    status: str(body.status, 'not_started') as TaskStatus,
   };
 }
 
-const ROUTE = /^\/api\/projects\/([^/]+)\/(tasks|reorder|assign|recalculate|schedule)$/;
+function parseTaskPatch(body: Record<string, unknown>): TaskPatch {
+  const patch: TaskPatch = {};
+  if (typeof body.title === 'string') patch.title = body.title;
+  if (typeof body.description === 'string') patch.description = body.description;
+  if (typeof body.estimatedMinutes === 'number')
+    patch.estimatedMinutes = minutes(body.estimatedMinutes);
+  if ('phaseId' in body) patch.phaseId = strOrNull(body.phaseId);
+  if (typeof body.status === 'string') patch.status = body.status as TaskStatus;
+  return patch;
+}
+
+function parseProject(body: Record<string, unknown>): Project {
+  return {
+    id: str(body.id) || crypto.randomUUID(),
+    name: str(body.name),
+    description: str(body.description),
+    startDate: isoDate(str(body.startDate)),
+    timezone: str(body.timezone, 'Asia/Tokyo'),
+    defaultWorkdayMinutes: minutes(num(body.defaultWorkdayMinutes, 480)),
+  };
+}
+
+function parseMember(body: Record<string, unknown>): Member {
+  return {
+    id: str(body.id) || crypto.randomUUID(),
+    workspaceId: str(body.workspaceId, 'w1'),
+    name: str(body.name),
+    dailyCapacityMinutes: minutes(num(body.dailyCapacityMinutes, 480)),
+  };
+}
+
+async function readBody(request: Request): Promise<Record<string, unknown>> {
+  return ((await request.json()) ?? {}) as Record<string, unknown>;
+}
+
+function json(data: unknown): Response {
+  return Response.json(data);
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+    const method = request.method;
 
     try {
-      if (path === '/api/health') {
-        return Response.json({ status: 'ok', app: 'HeyPJ!' });
+      if (path === '/api/health') return json({ status: 'ok', app: 'HeyPJ!' });
+      if (!path.startsWith('/api/')) return new Response('Not Found', { status: 404 });
+
+      const segs = path
+        .replace(/^\/api\//, '')
+        .split('/')
+        .map((s) => decodeURIComponent(s));
+
+      // POST /api/projects — プロジェクト作成（DO を介さないグローバル操作）
+      if (segs[0] === 'projects' && segs.length === 1) {
+        if (method !== 'POST') return methodNotAllowed();
+        const repo = new D1ProjectRepository(env.DB);
+        const project = parseProject(await readBody(request));
+        await createProject(repo, project);
+        return json({ id: project.id });
       }
 
-      const match = ROUTE.exec(path);
-      if (match) {
-        const projectId = decodeURIComponent(match[1]!);
-        const action = match[2]!;
+      if (segs[0] === 'projects' && segs.length >= 2) {
+        const projectId = segs[1]!;
         const stub = schedulerStub(env, projectId);
 
-        if (action === 'schedule') {
-          if (request.method !== 'GET') return methodNotAllowed();
-          return Response.json(await stub.getSchedule(projectId));
+        // GET /api/projects/:id — WBS 読み取りモデル
+        if (segs.length === 2) {
+          if (method !== 'GET') return methodNotAllowed();
+          return json(await stub.getProjectView(projectId));
         }
 
-        if (request.method !== 'POST') return methodNotAllowed();
-        const body = ((await request.json()) ?? {}) as Record<string, unknown>;
+        const action = segs[2]!;
+
+        // PATCH /api/projects/:id/tasks/:taskId — タスク編集
+        if (segs.length === 4 && action === 'tasks') {
+          if (method !== 'PATCH') return methodNotAllowed();
+          const taskId = segs[3]!;
+          const patch = parseTaskPatch(await readBody(request));
+          return json(await stub.updateTask({ projectId, taskId, patch }));
+        }
+
+        if (segs.length !== 3) return new Response('Not Found', { status: 404 });
+
+        if (action === 'schedule') {
+          if (method !== 'GET') return methodNotAllowed();
+          return json(await stub.getSchedule(projectId));
+        }
+
+        if (method !== 'POST') return methodNotAllowed();
+        const body = await readBody(request);
 
         switch (action) {
+          case 'members': {
+            const repo = new D1ProjectRepository(env.DB);
+            const member = parseMember(body);
+            await addMember(repo, member);
+            return json({ id: member.id });
+          }
           case 'tasks':
-            return Response.json(await stub.createTask(parseTask(body, projectId)));
+            return json(await stub.createTask(parseTask(body, projectId)));
           case 'reorder':
-            return Response.json(
+            return json(
               await stub.reorderTask({
                 projectId,
                 orderedTaskIds: Array.isArray(body.orderedTaskIds)
@@ -76,7 +154,7 @@ export default {
               }),
             );
           case 'assign':
-            return Response.json(
+            return json(
               await stub.assignMember({
                 projectId,
                 taskId: str(body.taskId),
@@ -84,7 +162,7 @@ export default {
               }),
             );
           case 'recalculate':
-            return Response.json(await stub.recalculate(projectId));
+            return json(await stub.recalculate(projectId));
         }
       }
 
