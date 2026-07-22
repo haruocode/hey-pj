@@ -92,9 +92,29 @@ body {
 }
 
 .col-num {
-  width: 2.5rem;
+  width: 3.2rem;
   text-align: center;
   color: var(--computed-fg);
+  white-space: nowrap;
+}
+.drag-handle {
+  cursor: grab;
+  color: #afb8c1;
+  user-select: none;
+  margin-right: 3px;
+  letter-spacing: -2px;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+.row-num {
+  font-variant-numeric: tabular-nums;
+}
+.wbs-table tbody tr.dragging {
+  opacity: 0.4;
+}
+.wbs-table tbody tr.drag-over > td {
+  border-top: 2px solid var(--accent);
 }
 .col-est {
   width: 6rem;

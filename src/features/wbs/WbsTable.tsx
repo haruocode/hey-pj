@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type DragEvent } from 'react';
 import type { ProjectView, ProjectViewTask } from './api';
 import * as api from './api';
 import { formatMinutes, statusLabel, conflictMessage, minutesToHours, hoursToMinutes } from './format';
@@ -18,6 +18,8 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
   const [newTitle, setNewTitle] = useState('');
   const [newEstimate, setNewEstimate] = useState('8'); // 時間(h)
   const [newAssignee, setNewAssignee] = useState(view.members[0]?.id ?? '');
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
 
   const titleOf = (taskId: string): string =>
     view.tasks.find((t) => t.id === taskId)?.title ?? taskId;
@@ -59,6 +61,40 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
     if (to < 0 || to >= ids.length) return;
     [ids[index], ids[to]] = [ids[to]!, ids[index]!];
     void run(() => api.reorderTasks(projectId, ids));
+  }
+
+  // ドラッグ&ドロップ並び替え（HTML5 ネイティブ）。ハンドルから開始し、行が drop 先。
+  function startDrag(index: number, e: DragEvent<HTMLElement>): void {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index)); // Firefox は setData がないと開始しない
+  }
+  function endDrag(): void {
+    setDragIndex(null);
+    setOverIndex(null);
+  }
+  function onRowDragOver(index: number, e: DragEvent<HTMLTableRowElement>): void {
+    if (dragIndex === null) return;
+    e.preventDefault(); // drop を許可
+    e.dataTransfer.dropEffect = 'move';
+    if (overIndex !== index) setOverIndex(index);
+  }
+  function onRowDrop(index: number, e: DragEvent<HTMLTableRowElement>): void {
+    e.preventDefault();
+    const from = dragIndex;
+    setDragIndex(null);
+    setOverIndex(null);
+    if (from === null || from === index) return;
+    const ids = view.tasks.map((t) => t.id);
+    const draggedId = ids[from]!;
+    const targetId = ids[index]!;
+    // 行の上半分に落とせば手前、下半分なら後ろに挿入（末尾への移動も可能）。
+    const rect = e.currentTarget.getBoundingClientRect();
+    const after = e.clientY - rect.top > rect.height / 2;
+    const without = ids.filter((_, i) => i !== from);
+    const pos = without.indexOf(targetId) + (after ? 1 : 0);
+    without.splice(pos, 0, draggedId);
+    void run(() => api.reorderTasks(projectId, without));
   }
   function addTask(): void {
     const title = newTitle.trim();
@@ -108,8 +144,27 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
         </thead>
         <tbody>
           {view.tasks.map((task, i) => (
-            <tr key={task.id}>
-              <td className="col-num">{i + 1}</td>
+            <tr
+              key={task.id}
+              onDragOver={busy ? undefined : (e) => onRowDragOver(i, e)}
+              onDrop={busy ? undefined : (e) => onRowDrop(i, e)}
+              className={
+                dragIndex === i ? 'dragging' : overIndex === i && dragIndex !== null ? 'drag-over' : ''
+              }
+            >
+              <td className="col-num">
+                <span
+                  className="drag-handle"
+                  draggable={!busy}
+                  onDragStart={(e) => startDrag(i, e)}
+                  onDragEnd={endDrag}
+                  title="ドラッグで並び替え"
+                  aria-label="ドラッグで並び替え"
+                >
+                  ⠿
+                </span>
+                <span className="row-num">{i + 1}</span>
+              </td>
               <td className="col-title">
                 <input
                   key={`title:${task.id}:${task.title}`}
