@@ -3,6 +3,10 @@ import { InMemoryProjectRepository } from '../infrastructure/repositories/InMemo
 import type { ProjectSeed } from '../infrastructure/repositories/InMemoryProjectRepository';
 import { updateProjectSettings } from './update-project/updateProjectSettings';
 import { updateMemberSettings } from './update-member/updateMemberSettings';
+import {
+  addMemberHoliday,
+  removeMemberHoliday,
+} from './member-holidays/manageMemberHolidays';
 import { getProjectView } from './get-project-view/getProjectView';
 import type { Project } from '../domain/project/Project';
 import type { Task } from '../domain/task/Task';
@@ -88,5 +92,46 @@ describe('updateMemberSettings', () => {
       { date: '2026-08-03', minutes: 240 },
       { date: '2026-08-04', minutes: 240 },
     ]);
+  });
+});
+
+describe('メンバー個人休日', () => {
+  it('個人休日を追加すると担当タスクがその日を避けて再計算される', async () => {
+    const repo = new InMemoryProjectRepository(
+      seed({ tasks: [makeTask({ id: 't1', estimatedMinutes: minutes(960) })] }), // 2日分
+    );
+    // 伊藤の 08-04(火) を個人休日にする → 08-03(月) と 08-05(水) に割り当てられる
+    const result = await addMemberHoliday(repo, {
+      projectId: 'p1',
+      memberId: 'ito',
+      date: isoDate('2026-08-04'),
+      name: '有給',
+    });
+    expect(result.scheduledTasks[0]!.dailyAllocations).toEqual([
+      { date: '2026-08-03', minutes: 480 },
+      { date: '2026-08-05', minutes: 480 },
+    ]);
+  });
+
+  it('追加した個人休日はビューに表示され、削除で元に戻る', async () => {
+    const repo = new InMemoryProjectRepository(
+      seed({ tasks: [makeTask({ id: 't1', estimatedMinutes: minutes(480) })] }),
+    );
+    await addMemberHoliday(repo, {
+      projectId: 'p1',
+      memberId: 'ito',
+      date: isoDate('2026-08-03'),
+    });
+    let view = await getProjectView(repo, 'p1');
+    expect(view.memberHolidays).toHaveLength(1);
+    expect(view.memberHolidays[0]!.date).toBe('2026-08-03');
+    // 月(08-03)が休みなので割り当ては火(08-04)へずれる
+    expect(view.tasks[0]!.plannedStartDate).toBe('2026-08-04');
+
+    const holidayId = view.memberHolidays[0]!.id;
+    await removeMemberHoliday(repo, { projectId: 'p1', holidayId });
+    view = await getProjectView(repo, 'p1');
+    expect(view.memberHolidays).toHaveLength(0);
+    expect(view.tasks[0]!.plannedStartDate).toBe('2026-08-03');
   });
 });

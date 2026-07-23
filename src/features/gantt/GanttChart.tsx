@@ -20,6 +20,16 @@ export function GanttChart({ view }: Props) {
     return PALETTE[idx >= 0 ? idx % PALETTE.length : 0]!;
   };
 
+  // メンバー個人休日の索引（`memberId:date`）。担当者が休みの暦日をセルに表示する。
+  const memberOff = new Set(view.memberHolidays.map((h) => `${h.memberId}:${h.date}`));
+  const nameOf = (memberId: string): string =>
+    view.members.find((m) => m.id === memberId)?.name ?? memberId;
+  const holidayLabelOf = (memberId: string, date: string): string | null => {
+    const h = view.memberHolidays.find((x) => x.memberId === memberId && x.date === date);
+    if (!h) return null;
+    return `${nameOf(memberId)} 休日${h.name ? `（${h.name}）` : ''}｜${date}`;
+  };
+
   const scheduled = view.tasks.filter((t) => t.plannedStartDate && t.plannedEndDate);
   if (scheduled.length === 0) {
     return (
@@ -66,6 +76,17 @@ export function GanttChart({ view }: Props) {
                       />
                     );
                   }
+                  const off =
+                    task.assigneeId !== null && memberOff.has(`${task.assigneeId}:${d}`);
+                  if (off) {
+                    return (
+                      <div
+                        key={d}
+                        className="gantt-cell holiday"
+                        title={holidayLabelOf(task.assigneeId!, d) ?? d}
+                      />
+                    );
+                  }
                   return (
                     <div
                       key={d}
@@ -81,6 +102,7 @@ export function GanttChart({ view }: Props) {
       </div>
       <p className="wbs-note">
         同じ計算済みスケジュールの別可視化です（WBS と同一データ）。色は担当者を表します。
+        斜線のセルは担当者の個人休日で、その日は割り当てられません。
       </p>
     </div>
   );

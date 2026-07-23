@@ -5,6 +5,7 @@ import type { Task } from '../../domain/task/Task';
 import type { TaskDependency } from '../../domain/task/Dependency';
 import type { Member } from '../../domain/member/Member';
 import type { CalendarBlock } from '../../domain/calendar/CalendarBlock';
+import type { MemberHoliday } from '../../domain/calendar/MemberHoliday';
 import type { RecurringMeeting } from '../../domain/calendar/RecurringMeeting';
 import type { IsoDate } from '../../domain/shared/units';
 import type { ScheduleResult, SchedulingInput } from '../../domain/scheduling/types';
@@ -17,6 +18,7 @@ export interface ProjectSeed {
   calendarBlocks?: CalendarBlock[];
   recurringMeetings?: RecurringMeeting[];
   holidays?: IsoDate[];
+  memberHolidays?: MemberHoliday[];
 }
 
 // テスト・ローカル開発用のインメモリ実装。D1 実装と同じポートを満たす。
@@ -28,6 +30,7 @@ export class InMemoryProjectRepository implements ProjectRepository {
   private calendarBlocks: CalendarBlock[];
   private recurringMeetings: RecurringMeeting[];
   private holidays: IsoDate[];
+  private memberHolidays: MemberHoliday[];
   private lastResult: ScheduleResult | null = null;
 
   constructor(seed: ProjectSeed) {
@@ -38,6 +41,7 @@ export class InMemoryProjectRepository implements ProjectRepository {
     this.calendarBlocks = [...(seed.calendarBlocks ?? [])];
     this.recurringMeetings = [...(seed.recurringMeetings ?? [])];
     this.holidays = [...(seed.holidays ?? [])];
+    this.memberHolidays = [...(seed.memberHolidays ?? [])];
   }
 
   loadSchedulingInput(_projectId: string): Promise<SchedulingInput> {
@@ -53,6 +57,7 @@ export class InMemoryProjectRepository implements ProjectRepository {
       calendarBlocks: [...this.calendarBlocks],
       recurringMeetings: [...this.recurringMeetings],
       holidays: [...this.holidays],
+      memberHolidays: [...this.memberHolidays],
       horizon: defaultHorizon(this.project.startDate),
     });
   }
@@ -87,6 +92,35 @@ export class InMemoryProjectRepository implements ProjectRepository {
 
   updateMember(memberId: string, patch: MemberPatch): Promise<void> {
     this.members = this.members.map((m) => (m.id === memberId ? { ...m, ...patch } : m));
+    return Promise.resolve();
+  }
+
+  listMemberHolidays(projectId: string): Promise<MemberHoliday[]> {
+    return Promise.resolve(
+      this.memberHolidays
+        .filter((h) => h.projectId === projectId)
+        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
+    );
+  }
+
+  addMemberHoliday(holiday: MemberHoliday): Promise<void> {
+    // 同一 project+member+date は冪等（重複を除いてから追加）。
+    this.memberHolidays = [
+      ...this.memberHolidays.filter(
+        (h) =>
+          !(
+            h.projectId === holiday.projectId &&
+            h.memberId === holiday.memberId &&
+            h.date === holiday.date
+          ),
+      ),
+      holiday,
+    ];
+    return Promise.resolve();
+  }
+
+  removeMemberHoliday(holidayId: string): Promise<void> {
+    this.memberHolidays = this.memberHolidays.filter((h) => h.id !== holidayId);
     return Promise.resolve();
   }
 

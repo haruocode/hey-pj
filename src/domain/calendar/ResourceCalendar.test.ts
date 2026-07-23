@@ -17,6 +17,7 @@ function build(overrides: {
   holidays?: IsoDate[];
   meetings?: RecurringMeeting[];
   blocks?: CalendarBlock[];
+  memberHolidays?: { memberId: string; date: IsoDate }[];
 }): ResourceCalendar {
   return new ResourceCalendar({
     timezone: 'Asia/Tokyo',
@@ -24,6 +25,13 @@ function build(overrides: {
     holidays: overrides.holidays ?? [],
     recurringMeetings: overrides.meetings ?? [],
     calendarBlocks: overrides.blocks ?? [],
+    memberHolidays: (overrides.memberHolidays ?? []).map((h) => ({
+      id: `${h.memberId}:${h.date}`,
+      projectId: 'p1',
+      memberId: h.memberId,
+      date: h.date,
+      name: '',
+    })),
   });
 }
 
@@ -96,6 +104,17 @@ describe('ResourceCalendar.availableMinutes', () => {
     };
     const cal = build({ blocks: [leave] });
     expect(cal.availableMinutes('m-ito', WED)).toBe(0);
+  });
+
+  it('メンバー個人休日は当人のみ 0（他の日は通常どおり）', () => {
+    const cal = build({ memberHolidays: [{ memberId: 'm-ito', date: WED }] });
+    expect(cal.availableMinutes('m-ito', WED)).toBe(0);
+    expect(cal.availableMinutes('m-ito', MON)).toBe(480);
+  });
+
+  it('別メンバーの個人休日は当人の稼働に影響しない', () => {
+    const cal = build({ memberHolidays: [{ memberId: 'm-other', date: WED }] });
+    expect(cal.availableMinutes('m-ito', WED)).toBe(480);
   });
 
   it('半日休暇(240分)を控除する', () => {

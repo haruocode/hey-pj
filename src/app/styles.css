@@ -397,6 +397,71 @@ body {
   cursor: default;
 }
 
+/* メンバー個人休日 */
+.member-holidays {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.member-holiday-row {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.member-holiday-name {
+  font-weight: 600;
+}
+.member-holiday-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.holiday-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+  color: #cf222e;
+  border-radius: 12px;
+  padding: 1px 4px 1px 8px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.holiday-chip-remove {
+  border: none;
+  background: transparent;
+  color: #cf222e;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+.holiday-chip-remove:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.member-holiday-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.member-holiday-add button {
+  border: 1px solid var(--accent);
+  color: #fff;
+  background: var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 3px 10px;
+}
+.member-holiday-add button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* ガント */
 .gantt {
   max-width: 1000px;
@@ -450,4 +515,15 @@ body {
 }
 .gantt-cell.work {
   border-radius: 3px;
+}
+/* 担当者の個人休日。週末とは別色で、斜線ハッチにより一目で区別できる。 */
+.gantt-cell.holiday {
+  background-color: #fff1f0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(207, 34, 46, 0.35) 3px,
+    rgba(207, 34, 46, 0.35) 4px
+  );
 }

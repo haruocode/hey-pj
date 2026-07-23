@@ -12,6 +12,14 @@ import { updateProjectSettings } from '../application/update-project/updateProje
 import type { UpdateProjectCommand } from '../application/update-project/updateProjectSettings';
 import { updateMemberSettings } from '../application/update-member/updateMemberSettings';
 import type { UpdateMemberCommand } from '../application/update-member/updateMemberSettings';
+import {
+  addMemberHoliday,
+  removeMemberHoliday,
+} from '../application/member-holidays/manageMemberHolidays';
+import type {
+  AddMemberHolidayCommand,
+  RemoveMemberHolidayCommand,
+} from '../application/member-holidays/manageMemberHolidays';
 import { recalculateSchedule } from '../application/recalculate-schedule/recalculateSchedule';
 import { getSchedule } from '../application/get-schedule/getSchedule';
 import { getProjectView } from '../application/get-project-view/getProjectView';
@@ -63,6 +71,14 @@ export class ProjectScheduler extends DurableObject<Env> {
 
   updateMember(cmd: UpdateMemberCommand): Promise<ScheduleResult> {
     return this.serialize(() => updateMemberSettings(this.repo, cmd));
+  }
+
+  addMemberHoliday(cmd: AddMemberHolidayCommand): Promise<ScheduleResult> {
+    return this.serialize(() => addMemberHoliday(this.repo, cmd));
+  }
+
+  removeMemberHoliday(cmd: RemoveMemberHolidayCommand): Promise<ScheduleResult> {
+    return this.serialize(() => removeMemberHoliday(this.repo, cmd));
   }
 
   getProjectView(projectId: string): Promise<ProjectView> {

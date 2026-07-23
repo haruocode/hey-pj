@@ -159,6 +159,28 @@ export default {
           return json(await stub.updateMember({ projectId, memberId, patch }));
         }
 
+        // POST /api/projects/:id/members/:memberId/holidays — メンバー個人休日を追加
+        if (segs.length === 5 && action === 'members' && segs[4] === 'holidays') {
+          if (method !== 'POST') return methodNotAllowed();
+          const memberId = segs[3]!;
+          const body = await readBody(request);
+          return json(
+            await stub.addMemberHoliday({
+              projectId,
+              memberId,
+              date: isoDate(str(body.date)),
+              name: str(body.name),
+            }),
+          );
+        }
+
+        // DELETE /api/projects/:id/members/:memberId/holidays/:holidayId — メンバー個人休日を削除
+        if (segs.length === 6 && action === 'members' && segs[4] === 'holidays') {
+          if (method !== 'DELETE') return methodNotAllowed();
+          const holidayId = segs[5]!;
+          return json(await stub.removeMemberHoliday({ projectId, holidayId }));
+        }
+
         if (segs.length !== 3) return new Response('Not Found', { status: 404 });
 
         if (action === 'schedule') {

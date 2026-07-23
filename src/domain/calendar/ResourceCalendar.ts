@@ -2,6 +2,7 @@ import type { IsoDate, Minutes } from '../shared/units';
 import { minutes } from '../shared/units';
 import type { Member } from '../member/Member';
 import type { CalendarBlock } from './CalendarBlock';
+import type { MemberHoliday } from './MemberHoliday';
 import type { DayOfWeek, RecurringMeeting } from './RecurringMeeting';
 import { dayOfWeek, isWeekend, eachDate } from '../shared/calendar-date';
 import { instantToProjectDate, durationMinutes, timeToMinutes } from '../shared/timezone';
@@ -9,9 +10,10 @@ import { instantToProjectDate, durationMinutes, timeToMinutes } from '../shared/
 export interface ResourceCalendarInput {
   timezone: string;
   members: readonly Member[];
-  holidays: readonly IsoDate[]; // 祝日 + 会社休日
+  holidays: readonly IsoDate[]; // 祝日 + 会社休日（全員）
   recurringMeetings: readonly RecurringMeeting[];
   calendarBlocks: readonly CalendarBlock[];
+  memberHolidays?: readonly MemberHoliday[]; // メンバー個人の休日（特定メンバーのみ稼働 0）
 }
 
 const FULL_DAY = Number.MAX_SAFE_INTEGER;
@@ -27,6 +29,8 @@ export class ResourceCalendar {
   private readonly memberDeductions: Map<string, Map<string, number>>;
   /** 全員に適用される休業日（type='holiday' または memberId=null のブロック）。 */
   private readonly orgClosedDates: Set<string>;
+  /** memberId -> 個人休日の暦日集合。その日はそのメンバーだけ稼働 0。 */
+  private readonly memberOffDays: Map<string, Set<string>>;
 
   constructor(input: ResourceCalendarInput) {
     this.membersById = new Map(input.members.map((m) => [m.id, m]));
@@ -34,6 +38,15 @@ export class ResourceCalendar {
     this.meetings = input.recurringMeetings;
     this.memberDeductions = new Map();
     this.orgClosedDates = new Set();
+    this.memberOffDays = new Map();
+    for (const h of input.memberHolidays ?? []) {
+      let set = this.memberOffDays.get(h.memberId);
+      if (!set) {
+        set = new Set();
+        this.memberOffDays.set(h.memberId, set);
+      }
+      set.add(h.date);
+    }
     this.indexBlocks(input.calendarBlocks, input.timezone);
   }
 
@@ -95,6 +108,7 @@ export class ResourceCalendar {
     if (isWeekend(date)) return minutes(0);
     if (this.holidays.has(date)) return minutes(0);
     if (this.orgClosedDates.has(date)) return minutes(0);
+    if (this.memberOffDays.get(memberId)?.has(date)) return minutes(0);
 
     const base = member.dailyCapacityMinutes as number;
     const deduction =

@@ -2,6 +2,7 @@ import type { Task } from '../task/Task';
 import type { TaskDependency } from '../task/Dependency';
 import type { Member } from '../member/Member';
 import type { CalendarBlock } from '../calendar/CalendarBlock';
+import type { MemberHoliday } from '../calendar/MemberHoliday';
 import type { RecurringMeeting } from '../calendar/RecurringMeeting';
 import type { IsoDate, Minutes } from '../shared/units';
 
@@ -18,7 +19,8 @@ export interface SchedulingInput {
   members: readonly Member[];
   calendarBlocks: readonly CalendarBlock[]; // 祝日・休暇・出張などの単発ブロック
   recurringMeetings: readonly RecurringMeeting[]; // 定例会議
-  holidays: readonly IsoDate[]; // 日本の祝日 + 会社休日
+  holidays: readonly IsoDate[]; // 日本の祝日 + 会社休日（全員）
+  memberHolidays: readonly MemberHoliday[]; // メンバー個人の休日（特定メンバーのみ）
   horizon: { from: IsoDate; to: IsoDate }; // 計算対象期間（打ち切りの範囲）
 }
 

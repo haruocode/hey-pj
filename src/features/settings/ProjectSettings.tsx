@@ -18,6 +18,8 @@ export function ProjectSettings({ projectId, view, onChanged }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [newCap, setNewCap] = useState('8');
+  // メンバーごとの「休日を追加」入力（memberId -> YYYY-MM-DD）。
+  const [newHoliday, setNewHoliday] = useState<Record<string, string>>({});
 
   async function run(action: () => Promise<unknown>): Promise<void> {
     setBusy(true);
@@ -72,6 +74,17 @@ export function ProjectSettings({ projectId, view, onChanged }: Props) {
       setNewName('');
       setNewCap('8');
     });
+  }
+  function addHoliday(memberId: string): void {
+    const date = (newHoliday[memberId] ?? '').trim();
+    if (!date) return;
+    void run(async () => {
+      await api.addMemberHoliday(projectId, memberId, { date });
+      setNewHoliday((prev) => ({ ...prev, [memberId]: '' }));
+    });
+  }
+  function removeHoliday(memberId: string, holidayId: string): void {
+    void run(() => api.removeMemberHoliday(projectId, memberId, holidayId));
   }
 
   return (
@@ -193,6 +206,60 @@ export function ProjectSettings({ projectId, view, onChanged }: Props) {
             </tr>
           </tbody>
         </table>
+      </section>
+
+      <section className="settings-section">
+        <h2>メンバーの個人休日</h2>
+        <p className="wbs-note">
+          有給・私用などメンバー個人の休みを登録します。登録した日はそのメンバーだけ稼働 0
+          となり、担当タスクの計画日が自動でその日を避けて再計算され、ガントにも反映されます。
+        </p>
+        <div className="member-holidays">
+          {view.members.map((m) => {
+            const holidays = view.memberHolidays
+              .filter((h) => h.memberId === m.id)
+              .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+            return (
+              <div key={m.id} className="member-holiday-row">
+                <div className="member-holiday-name">{m.name}</div>
+                <div className="member-holiday-chips">
+                  {holidays.length === 0 && <span className="wbs-sub">休日なし</span>}
+                  {holidays.map((h) => (
+                    <span key={h.id} className="holiday-chip">
+                      {h.date}
+                      <button
+                        type="button"
+                        className="holiday-chip-remove"
+                        disabled={busy}
+                        title="削除"
+                        onClick={() => removeHoliday(m.id, h.id)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="member-holiday-add">
+                  <input
+                    type="date"
+                    value={newHoliday[m.id] ?? ''}
+                    disabled={busy}
+                    onChange={(e) =>
+                      setNewHoliday((prev) => ({ ...prev, [m.id]: e.target.value }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    disabled={busy || !(newHoliday[m.id] ?? '').trim()}
+                    onClick={() => addHoliday(m.id)}
+                  >
+                    追加
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
     </div>
   );

@@ -136,6 +136,30 @@ export function addMember(
   });
 }
 
+export function addMemberHoliday(
+  projectId: string,
+  memberId: string,
+  holiday: { date: string; name?: string },
+): Promise<unknown> {
+  return request(
+    `/projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(memberId)}/holidays`,
+    { method: 'POST', body: JSON.stringify(holiday) },
+  );
+}
+
+export function removeMemberHoliday(
+  projectId: string,
+  memberId: string,
+  holidayId: string,
+): Promise<unknown> {
+  return request(
+    `/projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(
+      memberId,
+    )}/holidays/${encodeURIComponent(holidayId)}`,
+    { method: 'DELETE' },
+  );
+}
+
 // デモ用のブートストラップ（プロジェクト + メンバー作成）。
 export async function createDemoProject(projectId: string): Promise<void> {
   await request(`/projects`, {

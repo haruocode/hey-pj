@@ -5,6 +5,7 @@ import type { Task, TaskStatus } from '../../domain/task/Task';
 import type { TaskDependency, DependencyType } from '../../domain/task/Dependency';
 import type { Member } from '../../domain/member/Member';
 import type { CalendarBlock, BlockType } from '../../domain/calendar/CalendarBlock';
+import type { MemberHoliday } from '../../domain/calendar/MemberHoliday';
 import type {
   RecurringMeeting,
   MeetingFrequency,
@@ -67,6 +68,13 @@ interface MeetingRow {
 interface DateRow {
   date: string;
 }
+interface MemberHolidayRow {
+  id: string;
+  project_id: string;
+  member_id: string;
+  date: string;
+  name: string;
+}
 
 function parseDaysOfWeek(csv: string): DayOfWeek[] {
   if (csv.trim() === '') return [];
@@ -88,7 +96,8 @@ export class D1ProjectRepository implements ProjectRepository {
       .first<ProjectRow>();
     if (!projectRow) throw new Error(`Project not found: ${projectId}`);
 
-    const [taskRows, depRows, memberRows, blockRows, meetingRows, holidayRows] = await Promise.all([
+    const [taskRows, depRows, memberRows, blockRows, meetingRows, holidayRows, memberHolidayRows] =
+      await Promise.all([
       this.db
         .prepare(
           'SELECT id, project_id, phase_id, parent_task_id, title, description, estimated_minutes, actual_minutes, assignee_id, sort_order, status FROM tasks WHERE project_id = ? ORDER BY sort_order',
@@ -120,6 +129,12 @@ export class D1ProjectRepository implements ProjectRepository {
         .bind(projectId)
         .all<MeetingRow>(),
       this.db.prepare('SELECT date FROM holidays WHERE project_id = ?').bind(projectId).all<DateRow>(),
+      this.db
+        .prepare(
+          'SELECT id, project_id, member_id, date, name FROM member_holidays WHERE project_id = ?',
+        )
+        .bind(projectId)
+        .all<MemberHolidayRow>(),
     ]);
 
     const tasks: Task[] = taskRows.results.map((r) => ({
@@ -172,6 +187,13 @@ export class D1ProjectRepository implements ProjectRepository {
     }));
 
     const holidays: IsoDate[] = holidayRows.results.map((r) => isoDate(r.date));
+    const memberHolidays: MemberHoliday[] = memberHolidayRows.results.map((r) => ({
+      id: r.id,
+      projectId: r.project_id,
+      memberId: r.member_id,
+      date: isoDate(r.date),
+      name: r.name,
+    }));
     const startDate = isoDate(projectRow.start_date);
 
     return {
@@ -186,6 +208,7 @@ export class D1ProjectRepository implements ProjectRepository {
       calendarBlocks,
       recurringMeetings,
       holidays,
+      memberHolidays,
       horizon: defaultHorizon(startDate),
     };
   }
@@ -363,6 +386,36 @@ export class D1ProjectRepository implements ProjectRepository {
       .prepare(`UPDATE members SET ${sets.join(', ')} WHERE id = ?`)
       .bind(...values)
       .run();
+  }
+
+  async listMemberHolidays(projectId: string): Promise<MemberHoliday[]> {
+    const { results } = await this.db
+      .prepare('SELECT id, project_id, member_id, date, name FROM member_holidays WHERE project_id = ? ORDER BY date')
+      .bind(projectId)
+      .all<MemberHolidayRow>();
+    return results.map((r) => ({
+      id: r.id,
+      projectId: r.project_id,
+      memberId: r.member_id,
+      date: isoDate(r.date),
+      name: r.name,
+    }));
+  }
+
+  async addMemberHoliday(holiday: MemberHoliday): Promise<void> {
+    // 同一 project+member+date は冪等（名前は後勝ちで更新）。
+    await this.db
+      .prepare(
+        `INSERT INTO member_holidays (id, project_id, member_id, date, name)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(project_id, member_id, date) DO UPDATE SET name = excluded.name`,
+      )
+      .bind(holiday.id, holiday.projectId, holiday.memberId, holiday.date, holiday.name)
+      .run();
+  }
+
+  async removeMemberHoliday(holidayId: string): Promise<void> {
+    await this.db.prepare('DELETE FROM member_holidays WHERE id = ?').bind(holidayId).run();
   }
 
   async updateTask(taskId: string, patch: TaskPatch): Promise<void> {

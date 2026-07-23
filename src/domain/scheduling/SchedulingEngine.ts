@@ -25,6 +25,7 @@ export function calculateSchedule(input: SchedulingInput): ScheduleResult {
     holidays: input.holidays,
     recurringMeetings: input.recurringMeetings,
     calendarBlocks: input.calendarBlocks,
+    memberHolidays: input.memberHolidays,
   });
 
   // スケジュール対象は葉タスク（他タスクの親でない）かつ見積 > 0。

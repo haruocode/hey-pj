@@ -41,6 +41,7 @@ function buildInput(overrides: Partial<SchedulingInput>): SchedulingInput {
     calendarBlocks: [],
     recurringMeetings: [],
     holidays: [],
+    memberHolidays: [],
     horizon: { from: isoDate('2026-08-01'), to: isoDate('2026-12-31') },
     ...overrides,
   };

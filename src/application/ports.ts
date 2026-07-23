@@ -3,6 +3,7 @@ import { addDays } from '../domain/shared/calendar-date';
 import type { Task, TaskStatus } from '../domain/task/Task';
 import type { Project } from '../domain/project/Project';
 import type { Member } from '../domain/member/Member';
+import type { MemberHoliday } from '../domain/calendar/MemberHoliday';
 import type { ScheduleResult, SchedulingInput } from '../domain/scheduling/types';
 
 // タスクの部分更新（インライン編集で使う編集可能フィールド）。
@@ -44,6 +45,13 @@ export interface ProjectRepository {
   updateProject(projectId: string, patch: ProjectPatch): Promise<void>;
   addMember(member: Member): Promise<void>;
   updateMember(memberId: string, patch: MemberPatch): Promise<void>;
+
+  /** プロジェクトの全メンバー個人休日を返す（表示・管理用）。 */
+  listMemberHolidays(projectId: string): Promise<MemberHoliday[]>;
+  /** メンバー個人休日を 1 件追加する（同一 project+member+date は冪等）。 */
+  addMemberHoliday(holiday: MemberHoliday): Promise<void>;
+  /** メンバー個人休日を 1 件削除する。 */
+  removeMemberHoliday(holidayId: string): Promise<void>;
 
   insertTask(task: Task): Promise<void>;
   updateTask(taskId: string, patch: TaskPatch): Promise<void>;

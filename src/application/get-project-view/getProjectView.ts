@@ -12,6 +12,13 @@ export interface ProjectViewMember {
   dailyCapacityMinutes: number;
 }
 
+export interface ProjectViewMemberHoliday {
+  id: string;
+  memberId: string;
+  date: IsoDate;
+  name: string;
+}
+
 export interface ProjectViewTask {
   id: string;
   phaseId: string | null;
@@ -38,6 +45,7 @@ export interface ProjectView {
     defaultWorkdayMinutes: number;
   };
   members: ProjectViewMember[];
+  memberHolidays: ProjectViewMemberHoliday[]; // メンバー個人休日（ガント表示・設定管理用）
   tasks: ProjectViewTask[]; // sortOrder 昇順
   conflicts: Conflict[];
   projectEndDate: IsoDate | null;
@@ -87,6 +95,12 @@ export async function getProjectView(
       id: m.id,
       name: m.name,
       dailyCapacityMinutes: m.dailyCapacityMinutes,
+    })),
+    memberHolidays: input.memberHolidays.map((h) => ({
+      id: h.id,
+      memberId: h.memberId,
+      date: h.date,
+      name: h.name,
     })),
     tasks,
     conflicts: [...result.conflicts],
