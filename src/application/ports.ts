@@ -55,6 +55,8 @@ export interface ProjectRepository {
 
   insertTask(task: Task): Promise<void>;
   updateTask(taskId: string, patch: TaskPatch): Promise<void>;
+  /** タスクと、それに紐づく依存関係・計算キャッシュを削除する。 */
+  deleteTask(taskId: string): Promise<void>;
   updateTaskAssignee(taskId: string, assigneeId: string | null): Promise<void>;
   /** orderedTaskIds の並びで各タスクの sortOrder を 0..n-1 に更新する。 */
   reorderTasks(projectId: string, orderedTaskIds: string[]): Promise<void>;

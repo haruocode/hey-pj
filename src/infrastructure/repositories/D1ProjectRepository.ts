@@ -451,6 +451,21 @@ export class D1ProjectRepository implements ProjectRepository {
       .run();
   }
 
+  async deleteTask(taskId: string): Promise<void> {
+    // タスク本体のほか、依存関係（先行/後続いずれの参照も）と計算キャッシュを掃除する。
+    // 呼び出し側（アプリ層）で「子タスクを持つ親は削除不可」を保証している前提。
+    await this.db.batch([
+      this.db.prepare('DELETE FROM task_daily_allocations WHERE task_id = ?').bind(taskId),
+      this.db.prepare('DELETE FROM task_schedule WHERE task_id = ?').bind(taskId),
+      this.db
+        .prepare(
+          'DELETE FROM task_dependencies WHERE predecessor_task_id = ? OR successor_task_id = ?',
+        )
+        .bind(taskId, taskId),
+      this.db.prepare('DELETE FROM tasks WHERE id = ?').bind(taskId),
+    ]);
+  }
+
   async updateTaskAssignee(taskId: string, assigneeId: string | null): Promise<void> {
     await this.db
       .prepare('UPDATE tasks SET assignee_id = ?, updated_at = ? WHERE id = ?')

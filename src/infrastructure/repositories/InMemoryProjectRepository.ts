@@ -134,6 +134,14 @@ export class InMemoryProjectRepository implements ProjectRepository {
     return Promise.resolve();
   }
 
+  deleteTask(taskId: string): Promise<void> {
+    this.tasks = this.tasks.filter((t) => t.id !== taskId);
+    this.dependencies = this.dependencies.filter(
+      (d) => d.predecessorTaskId !== taskId && d.successorTaskId !== taskId,
+    );
+    return Promise.resolve();
+  }
+
   updateTaskAssignee(taskId: string, assigneeId: string | null): Promise<void> {
     this.tasks = this.tasks.map((t) => (t.id === taskId ? { ...t, assigneeId } : t));
     return Promise.resolve();

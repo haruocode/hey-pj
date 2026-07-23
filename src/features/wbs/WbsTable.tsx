@@ -25,6 +25,11 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
   const titleOf = (taskId: string): string =>
     view.tasks.find((t) => t.id === taskId)?.title ?? taskId;
 
+  // 子タスクを持つ親タスクは削除不可。子を持つタスク ID の集合。
+  const parentIds = new Set(
+    view.tasks.map((t) => t.parentTaskId).filter((id): id is string => id !== null),
+  );
+
   async function run(action: () => Promise<unknown>): Promise<void> {
     setBusy(true);
     setError(null);
@@ -121,6 +126,11 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
       setBusy(false);
       setOrder(null); // 並び替え後の view に切り替える（順序は一致するので跳ねない）
     }
+  }
+  function deleteTask(task: ProjectViewTask): void {
+    if (parentIds.has(task.id)) return; // 子を持つ親は削除不可（ボタンも無効化済み）
+    if (!window.confirm(`「${task.title || '(無題)'}」を削除しますか？`)) return;
+    void run(() => api.deleteTask(projectId, task.id));
   }
   function addTask(): void {
     const title = newTitle.trim();
@@ -245,6 +255,19 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
                     </option>
                   ))}
                 </select>
+                <button
+                  className="task-delete"
+                  disabled={busy || parentIds.has(task.id)}
+                  title={
+                    parentIds.has(task.id)
+                      ? '子タスクを持つため削除できません'
+                      : 'タスクを削除'
+                  }
+                  aria-label="タスクを削除"
+                  onClick={() => deleteTask(task)}
+                >
+                  ×
+                </button>
               </td>
             </tr>
           ))}

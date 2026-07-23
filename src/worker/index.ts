@@ -144,9 +144,13 @@ export default {
         const action = segs[2]!;
 
         // PATCH /api/projects/:id/tasks/:taskId — タスク編集
+        // DELETE /api/projects/:id/tasks/:taskId — タスク削除（子を持つ親は不可）
         if (segs.length === 4 && action === 'tasks') {
-          if (method !== 'PATCH') return methodNotAllowed();
           const taskId = segs[3]!;
+          if (method === 'DELETE') {
+            return json(await stub.deleteTask({ projectId, taskId }));
+          }
+          if (method !== 'PATCH') return methodNotAllowed();
           const patch = parseTaskPatch(await readBody(request));
           return json(await stub.updateTask({ projectId, taskId, patch }));
         }

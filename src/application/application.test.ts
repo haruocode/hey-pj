@@ -4,6 +4,7 @@ import type { ProjectSeed } from '../infrastructure/repositories/InMemoryProject
 import { createTask } from './create-task/createTask';
 import { assignMember } from './assign-member/assignMember';
 import { reorderTask } from './reorder-task/reorderTask';
+import { deleteTask } from './delete-task/deleteTask';
 import { recalculateSchedule } from './recalculate-schedule/recalculateSchedule';
 import type { Project } from '../domain/project/Project';
 import type { Task } from '../domain/task/Task';
@@ -91,6 +92,38 @@ describe('reorderTask', () => {
     const after = await reorderTask(repo, { projectId: 'p1', orderedTaskIds: ['b', 'a'] });
     expect(after.scheduledTasks.find((t) => t.taskId === 'b')!.plannedStartDate).toBe('2026-08-03');
     expect(after.scheduledTasks.find((t) => t.taskId === 'a')!.plannedStartDate).toBe('2026-08-04');
+  });
+});
+
+describe('deleteTask', () => {
+  it('タスクを削除し、残りのスケジュールを再計算して返す', async () => {
+    const tasks: Task[] = [
+      makeTask({ id: 'a', estimatedMinutes: minutes(480), sortOrder: 0 }),
+      makeTask({ id: 'b', estimatedMinutes: minutes(480), sortOrder: 1 }),
+    ];
+    const repo = new InMemoryProjectRepository(seed({ tasks }));
+    // a を削除 → b が月曜開始に繰り上がる
+    const result = await deleteTask(repo, { projectId: 'p1', taskId: 'a' });
+    expect(result.scheduledTasks.map((t) => t.taskId)).toEqual(['b']);
+    expect(result.scheduledTasks[0]!.plannedStartDate).toBe('2026-08-03');
+  });
+
+  it('子タスクを持つ親タスクは削除できない', async () => {
+    const tasks: Task[] = [
+      makeTask({ id: 'parent', estimatedMinutes: minutes(0), sortOrder: 0 }),
+      makeTask({ id: 'child', parentTaskId: 'parent', estimatedMinutes: minutes(480), sortOrder: 1 }),
+    ];
+    const repo = new InMemoryProjectRepository(seed({ tasks }));
+    await expect(deleteTask(repo, { projectId: 'p1', taskId: 'parent' })).rejects.toThrow(
+      /子タスク/,
+    );
+  });
+
+  it('存在しないタスクの削除はエラー', async () => {
+    const repo = new InMemoryProjectRepository(seed({ tasks: [] }));
+    await expect(deleteTask(repo, { projectId: 'p1', taskId: 'nope' })).rejects.toThrow(
+      /not found/i,
+    );
   });
 });
 

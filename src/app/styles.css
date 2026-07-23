@@ -140,7 +140,31 @@ body {
   width: 6.5rem;
 }
 .col-status {
-  width: 6rem;
+  width: 7.5rem;
+  white-space: nowrap;
+}
+/* 行のタスク削除ボタン。ステータス選択の右に控えめに置く。 */
+.task-delete {
+  margin-left: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--computed-fg);
+  border-radius: 4px;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  padding: 0;
+  vertical-align: middle;
+}
+.task-delete:hover:not(:disabled) {
+  border-color: var(--error-fg);
+  color: var(--error-fg);
+  background: var(--error-bg);
+}
+.task-delete:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 /* 計画日は計算値であることを視覚的に示す */

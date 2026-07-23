@@ -8,6 +8,8 @@ import { reorderTask } from '../application/reorder-task/reorderTask';
 import type { ReorderTaskCommand } from '../application/reorder-task/reorderTask';
 import { updateTask } from '../application/update-task/updateTask';
 import type { UpdateTaskCommand } from '../application/update-task/updateTask';
+import { deleteTask } from '../application/delete-task/deleteTask';
+import type { DeleteTaskCommand } from '../application/delete-task/deleteTask';
 import { updateProjectSettings } from '../application/update-project/updateProjectSettings';
 import type { UpdateProjectCommand } from '../application/update-project/updateProjectSettings';
 import { updateMemberSettings } from '../application/update-member/updateMemberSettings';
@@ -63,6 +65,10 @@ export class ProjectScheduler extends DurableObject<Env> {
 
   updateTask(cmd: UpdateTaskCommand): Promise<ScheduleResult> {
     return this.serialize(() => updateTask(this.repo, cmd));
+  }
+
+  deleteTask(cmd: DeleteTaskCommand): Promise<ScheduleResult> {
+    return this.serialize(() => deleteTask(this.repo, cmd));
   }
 
   updateProject(cmd: UpdateProjectCommand): Promise<ScheduleResult> {

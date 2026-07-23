@@ -78,6 +78,13 @@ export function updateTask(
   );
 }
 
+export function deleteTask(projectId: string, taskId: string): Promise<unknown> {
+  return request(
+    `/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}`,
+    { method: 'DELETE' },
+  );
+}
+
 export function assignMember(
   projectId: string,
   taskId: string,
