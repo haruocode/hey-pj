@@ -101,7 +101,11 @@ export function ProjectList({ navigate }: Props) {
               placeholder="例: 顧客管理システム フェーズ2"
               disabled={busy}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && create()}
+              onKeyDown={(e) => {
+                // IME 変換確定の Enter は無視する。
+                if (e.key !== 'Enter' || e.nativeEvent.isComposing || e.keyCode === 229) return;
+                create();
+              }}
             />
           </label>
           <label>

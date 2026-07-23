@@ -258,7 +258,11 @@ export function WbsTable({ projectId, view, onChanged }: Props) {
                 value={newTitle}
                 disabled={busy}
                 onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addTask()}
+                onKeyDown={(e) => {
+                  // IME 変換確定の Enter（isComposing / keyCode 229）は無視する。
+                  if (e.key !== 'Enter' || e.nativeEvent.isComposing || e.keyCode === 229) return;
+                  addTask();
+                }}
               />
             </td>
             <td className="col-est">

@@ -186,7 +186,11 @@ export function ProjectSettings({ projectId, view, onChanged }: Props) {
                   value={newName}
                   disabled={busy}
                   onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addMember()}
+                  onKeyDown={(e) => {
+                    // IME 変換確定の Enter は無視する。
+                    if (e.key !== 'Enter' || e.nativeEvent.isComposing || e.keyCode === 229) return;
+                    addMember();
+                  }}
                 />
               </td>
               <td>
