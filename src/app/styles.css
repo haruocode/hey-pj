@@ -477,6 +477,31 @@ body {
   display: grid;
   font-size: 0.8rem;
 }
+.gantt-mcorner,
+.gantt-monthhead {
+  height: 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--head-bg);
+}
+.gantt-mcorner {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  border-right: 1px solid var(--border);
+}
+.gantt-monthhead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  border-right: 1px solid var(--border);
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow: hidden;
+}
+.gantt-monthlabel {
+  padding: 0 6px;
+  white-space: nowrap;
+}
 .gantt-corner,
 .gantt-dayhead,
 .gantt-label,

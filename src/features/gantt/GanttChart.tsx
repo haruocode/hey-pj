@@ -43,6 +43,18 @@ export function GanttChart({ view }: Props) {
   const end = view.projectEndDate ?? start;
   const days = eachDate(start, end);
 
+  // 日ヘッダーの上に「月」行を出す。連続する同一年月をまとめ、その日数分の列にまたがらせる。
+  const months: { ym: string; label: string; span: number }[] = [];
+  for (const d of days) {
+    const ym = d.slice(0, 7); // YYYY-MM
+    const last = months[months.length - 1];
+    if (last && last.ym === ym) {
+      last.span += 1;
+    } else {
+      months.push({ ym, label: `${Number(d.slice(0, 4))}年${Number(d.slice(5, 7))}月`, span: 1 });
+    }
+  }
+
   return (
     <div className="gantt">
       <div className="gantt-scroll">
@@ -50,6 +62,13 @@ export function GanttChart({ view }: Props) {
           className="gantt-grid"
           style={{ gridTemplateColumns: `200px repeat(${days.length}, 26px)` }}
         >
+          <div className="gantt-mcorner" />
+          {months.map((mo) => (
+            <div key={mo.ym} className="gantt-monthhead" style={{ gridColumn: `span ${mo.span}` }}>
+              <span className="gantt-monthlabel">{mo.label}</span>
+            </div>
+          ))}
+
           <div className="gantt-corner">タスク</div>
           {days.map((d) => (
             <div key={d} className={`gantt-dayhead${isWeekend(d) ? ' weekend' : ''}`} title={d}>
